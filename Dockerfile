@@ -1,5 +1,5 @@
 FROM phusion/baseimage:0.9.15
-MAINTAINER Jose Luis Ruiz <jose@wazuh.com>
+MAINTAINER Jingxuan <jingxus@g.clemson.edu>
 
 # Update repositories, install git, gcc, wget, make and java8 and
 # clone down the latest OSSEC build from the official Github repo.
@@ -11,14 +11,7 @@ RUN add-apt-repository -y ppa:webupd8team/java &&\
     echo "oracle-java8-installer shared/accepted-oracle-license-v1-1 select true" | sudo debconf-set-selections &&\
     apt-get -yf install oracle-java8-installer
 
-
-RUN wget -qO - https://packages.elasticsearch.org/GPG-KEY-elasticsearch | sudo apt-key add - &&\
-     echo "deb https://packages.elasticsearch.org/logstash/2.1/debian stable main" | sudo tee -a /etc/apt/sources.list &&\
-    wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add - &&\
-    echo "deb http://packages.elastic.co/kibana/4.5/debian stable main" | sudo tee -a /etc/apt/sources.list &&\
-    echo "deb https://packages.elastic.co/elasticsearch/2.x/debian stable main" | sudo tee -a /etc/apt/sources.list.d/elasticsearch-2.x.list
-
-RUN apt-get update && apt-get install -y vim expect gcc make libssl-dev unzip logstash elasticsearch
+RUN apt-get update && apt-get install -y vim expect gcc make libssl-dev unzip
 
 RUN cd root && mkdir ossec_tmp && cd ossec_tmp
 
@@ -28,21 +21,15 @@ RUN cd root && mkdir ossec_tmp && cd ossec_tmp
 # everything except e-mail notifications
 
 
-RUN wget https://github.com/wazuh/ossec-wazuh/archive/v1.1.1.tar.gz &&\
-    tar xvfz v1.1.1.tar.gz &&\
-    mv wazuh-1.1.1 /root/ossec_tmp/ossec-wazuh &&\
-    rm v1.1.1.tar.gz
+RUN wget https://github.com/wazuh/wazuh/archive/master.zip &&\
+    tar xvfz master.zip &&\
+    mv wazuh-master /root/ossec_tmp/ossec-wazuh &&\
+    rm master.zip
 #ADD ossec-wazuh /root/ossec_tmp/ossec-wazuh
 COPY preloaded-vars.conf /root/ossec_tmp/ossec-wazuh/etc/preloaded-vars.conf
 
 RUN /root/ossec_tmp/ossec-wazuh/install.sh
 
-RUN wget https://github.com/wazuh/wazuh-api/archive/v1.2.tar.gz &&\
-    tar xvfz v1.2.tar.gz &&\
-    mkdir -p /var/ossec/api && cp -r wazuh-api-1.2/* /var/ossec/api &&\
-    cd /var/ossec/api && npm install
-
-RUN rm -rf wazuh-api-1.2 && rm v1.2.tar.gz
 RUN apt-get remove --purge -y gcc make && apt-get clean
 
 # Set persistent volumes for the /etc and /log folders so that the logs
@@ -55,26 +42,6 @@ RUN service ossec restart &&\
   rm /var/ossec/default_agent &&\
   service ossec stop &&\
   echo -n "" /var/ossec/logs/ossec.log
-
-
-##LOGSTASH configuration
-
-RUN cp /root/ossec_tmp/ossec-wazuh/extensions/logstash/01-ossec-singlehost.conf /etc/logstash/conf.d/ &&\
-    cp /root/ossec_tmp/ossec-wazuh/extensions/elasticsearch/elastic-ossec-template.json  /etc/logstash/ &&\
-    curl -O "http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz" &&\
-    gzip -d GeoLiteCity.dat.gz && sudo mv GeoLiteCity.dat /etc/logstash/ &&\
-    usermod -a -G ossec logstash
-
-#Elasticsearch Configuration
-
-ADD elasticsearch.yml /etc/elasticsearch/elasticsearch.yml
-
-#KIBANA4.5 configuration
-
-RUN apt-get -y install kibana python-requests
-
-ADD wazuh_kibana_installer.py /tmp
-
 
 ADD data_dirs.env /data_dirs.env
 ADD init.bash /init.bash
@@ -89,7 +56,7 @@ RUN chmod 755 /tmp/run.sh
 
 VOLUME ["/var/ossec/data"]
 
-EXPOSE 55000/tcp 1514/udp 1515/tcp 5601/tcp 514/udp
+EXPOSE 1514/udp 1515/tcp 514/udp
 
 # Run supervisord so that the container will stay alive
 
