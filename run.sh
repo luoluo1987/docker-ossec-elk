@@ -68,7 +68,7 @@ then
         > /var/ossec/etc/ossec.conf-new
       mv -f /var/ossec/etc/ossec.conf-new /var/ossec/etc/ossec.conf
       chgrp ossec /var/ossec/etc/ossec.conf
-      /var/ossec/bin/ossec-control enable client-syslog
+#      /var/ossec/bin/ossec-control enable client-syslog
     fi
   fi
 fi
@@ -96,24 +96,10 @@ fi
 sleep 15 # give ossec a reasonable amount of time to start before checking status
 LAST_OK_DATE=`date +%s`
 
-
-/etc/init.d/logstash start
-/etc/init.d/elasticsearch start
-/etc/init.d/kibana restart
-
-echo "Waiting 60 secods until logstash and elasticsearch start to run"
-sleep 60
-
-cd /tmp
-python wazuh_kibana_installer.py
-
 ## Update rules and decoders with Wazuh Ruleset
-cd /var/ossec/update/ruleset && python ossec_ruleset.py
+#cd /var/ossec/update/ruleset && python ossec_ruleset.py
 
-/usr/bin/nodejs /var/ossec/api/app.js > /var/ossec/api/api.log &
-
-
-service ossec restart
+/var/ossec/bin/ossec-control restart
 
 
 tail -f /var/ossec/logs/ossec.log

@@ -1,17 +1,13 @@
 FROM phusion/baseimage:0.9.15
 MAINTAINER Jingxuan <jingxus@g.clemson.edu>
 
+ENV DEBIAN_FRONTEND noninteractive
+
 # Update repositories, install git, gcc, wget, make and java8 and
 # clone down the latest OSSEC build from the official Github repo.
 RUN apt-get update && apt-get install -y curl && curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
-RUN apt-get install -y nodejs
-RUN apt-get update && apt-get install -y python-software-properties debconf-utils daemontools wget
-RUN add-apt-repository -y ppa:webupd8team/java &&\
-    apt-get update &&\
-    echo "oracle-java8-installer shared/accepted-oracle-license-v1-1 select true" | sudo debconf-set-selections &&\
-    apt-get -yf install oracle-java8-installer
-
-RUN apt-get update && apt-get install -y vim expect gcc make libssl-dev unzip
+RUN apt-get install -y python-software-properties daemontools wget
+RUN apt-get install -y vim expect gcc make libssl-dev unzip
 
 RUN cd root && mkdir ossec_tmp && cd ossec_tmp
 
@@ -22,7 +18,7 @@ RUN cd root && mkdir ossec_tmp && cd ossec_tmp
 
 
 RUN wget https://github.com/wazuh/wazuh/archive/master.zip &&\
-    tar xvfz master.zip &&\
+    unzip master.zip &&\
     mv wazuh-master /root/ossec_tmp/ossec-wazuh &&\
     rm master.zip
 #ADD ossec-wazuh /root/ossec_tmp/ossec-wazuh
@@ -37,10 +33,10 @@ RUN apt-get remove --purge -y gcc make && apt-get clean
 # server/client ommunication (1514) and the syslog transport (514)
 
 ADD default_agent /var/ossec/default_agent
-RUN service ossec restart &&\
+RUN /var/ossec/bin/ossec-control start &&\
   /var/ossec/bin/manage_agents -f /default_agent &&\
   rm /var/ossec/default_agent &&\
-  service ossec stop &&\
+  /var/ossec/bin/ossec-control stop &&\
   echo -n "" /var/ossec/logs/ossec.log
 
 ADD data_dirs.env /data_dirs.env
